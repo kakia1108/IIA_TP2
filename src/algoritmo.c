@@ -108,14 +108,12 @@ double trepa_colinas(int sol[], double *mat, int C, int m, int num_iter)
 
 // Recristalização Simulada adaptada ao problema de turismo
 // Problema de MAXIMIZAÇÃO
-double recristalização(int sol[], double *mat, int C, int m)
+// Recristalização Simulada adaptada ao problema de turismo
+// Problema de MAXIMIZAÇÃO
+double recristalizacao(int sol[], double *mat, int C, int m, double tmax, double tmin, double farref, int viz_tipo)
 {
     int *nova_sol, i, k = 5, itera = 0;
-    double custo, custo_viz, t, tmin, tmax, farref;
-
-    tmax = 10.0;
-    tmin = 0.05;
-    farref = 0.99;
+    double custo, custo_viz, t;
 
     nova_sol = malloc(sizeof(int) * C);
     if(nova_sol == NULL)
@@ -124,7 +122,6 @@ double recristalização(int sol[], double *mat, int C, int m)
         exit(1);
     }
 
-    // Avaliar solução inicial
     t = tmax;
     custo = calcula_fit(sol, mat, C, m);
 
@@ -132,11 +129,18 @@ double recristalização(int sol[], double *mat, int C, int m)
     {
         for(i = 0; i < k; i++)
         {
-            // Alternar entre as duas vizinhanças
-            if(i % 2 == 0)
+            // Escolher vizinhança com base no parâmetro
+            if(viz_tipo == 1)
                 gera_vizinho(sol, nova_sol, C, m);
-            else
+            else if(viz_tipo == 2)
                 gera_vizinho2(sol, nova_sol, C, m);
+            else // viz_tipo == 3 (Alternar)
+            {
+                if(i % 2 == 0)
+                    gera_vizinho(sol, nova_sol, C, m);
+                else
+                    gera_vizinho2(sol, nova_sol, C, m);
+            }
 
             // Avaliar vizinho
             custo_viz = calcula_fit(nova_sol, mat, C, m);

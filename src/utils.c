@@ -1,16 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <string.h> // Necessário para a função 'strtok' se for usar, mas vamos usar 'fscanf'
 #include "utils.h"
 
+#include <time.h>
+
 // Leitura do ficheiro de input (formato turismo)
-// Recebe: nome do ficheiro, número de candidatos C (ptr), número de locais m (ptr)
-// Devolve: matriz de distâncias (double)
 double* init_dados(char *nome, int *C, int *m)
 {
     FILE *f;
-    double *p, *q;
-    int i, j;
+    double *p;
+    char label1[5], label2[5]; // Para ler as strings e1, e2, ...
+    double dist;
 
     f = fopen(nome, "r");
     if(!f)
@@ -19,25 +20,38 @@ double* init_dados(char *nome, int *C, int *m)
         exit(1);
     }
 
-    // Ler C (número de candidatos) e m (número de locais a construir)
+    // 1. Ler C (número de candidatos) e m (número de locais a construir)
     fscanf(f, "%d %d", C, m);
 
     printf("Candidatos: %d, Locais a construir: %d\n", *C, *m);
 
-    // Alocação dinâmica da matriz de distâncias
-    p = malloc(sizeof(double) * (*C) * (*C));
+    // 2. Alocação dinâmica da matriz de distâncias e inicialização a ZERO (IMPORTANTE)
+    // Usar calloc garante que todas as distâncias não lidas (ex: d(ei, ei)) são 0.0
+    p = calloc((*C) * (*C), sizeof(double));
     if(!p)
     {
         printf("Erro na alocacao de memoria\n");
         exit(1);
     }
 
-    q = p;
+    // 3. Ler o resto do ficheiro (formato: eX eY DISTANCIA)
+    // O loop deve continuar enquanto for possível ler 3 valores (string, string, double)
+    while(fscanf(f, "%4s %4s %lf", label1, label2, &dist) == 3)
+    {
+        // Converter as labels para índices base 0 (ex: "e1" -> 0, "e2" -> 1)
+        // atoi(label + 1) converte a parte numérica da string (ignora o 'e')
+        int idx1 = atoi(label1 + 1) - 1;
+        int idx2 = atoi(label2 + 1) - 1;
 
-    // Preenchimento da matriz de distâncias
-    for(i = 0; i < *C; i++)
-        for(j = 0; j < *C; j++)
-            fscanf(f, "%lf", q++);
+        // Verificar se os índices são válidos
+        if (idx1 >= 0 && idx1 < *C && idx2 >= 0 && idx2 < *C)
+        {
+            // 4. Preencher a matriz nas posições [idx1, idx2] e [idx2, idx1] (simetria)
+            // Acesso: p[linha * C + coluna]
+            p[idx1 * (*C) + idx2] = dist;
+            p[idx2 * (*C) + idx1] = dist;
+        }
+    }
 
     fclose(f);
     return p;
@@ -105,4 +119,32 @@ int random_l_h(int min, int max)
 float rand_01()
 {
     return ((float)rand()) / RAND_MAX;
+}
+
+// NOVA FUNÇÃO: Escreve o resultado de uma run para um ficheiro
+// O parâmetro 'append' controla se deve criar um novo cabeçalho (0) ou adicionar ao ficheiro (1)
+void log_run_result(char *filepath, int run_number, double custo, int C, int m, double tmax, double farref, int viz_tipo, int append, char *nome_fich)
+{
+    // Usar 'a' (append) para adicionar ao ficheiro
+    FILE *f = fopen(filepath, "a");
+
+    if (!f)
+    {
+        printf("ERRO: Nao foi possivel abrir o ficheiro de log: %s\n", filepath);
+        return;
+    }
+
+    // Se append for 0, escreve o cabeçalho (apenas na primeira run)
+    if (append == 0)
+    {
+        // Cabeçalho para Excel (use ponto e vírgula como separador para compatibilidade Europeia/Portuguesa)
+        fprintf(f, "Instancia;Candidatos;Locais;Algoritmo;TMax;Farref;Vizinhança;Run;Custo\n");
+    }
+
+    // Escreve os dados da run
+    fprintf(f, "%s;%d;%d;RS;%.2f;%.3f;%d;%d;%.4f\n",
+            strrchr(filepath, '/') ? strrchr(filepath, '/') + 1 : filepath, // Nome do ficheiro
+            C, m, tmax, farref, viz_tipo, run_number, custo);
+
+    fclose(f);
 }

@@ -44,7 +44,7 @@ double calcula_fit(int sol[], double *mat, int candidatos, int m)
     if(m <= 1)
         return 0.0;
 
-    double dm = (2.0 / (m * (m - 1))) * soma_distancias;
+    double dm = (1.0 / m) * soma_distancias;
 
     return dm;
 }
