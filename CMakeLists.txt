@@ -5,8 +5,10 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(IIA_TP2 src/main.c
         src/funcao.c
-        src/algoritmo.c
         src/utils.c
-        src/algoritmo.h
         src/funcao.h
-        src/utils.h)
+        src/utils.h
+        src/pesquisa_local.c
+        src/algoritmo_evolutivo.c
+        src/pesquisa_local.h
+        src/algoritmo_evolutivo.h)

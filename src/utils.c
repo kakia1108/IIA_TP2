@@ -123,7 +123,12 @@ float rand_01()
 
 // NOVA FUNÇÃO: Escreve o resultado de uma run para um ficheiro
 // O parâmetro 'append' controla se deve criar um novo cabeçalho (0) ou adicionar ao ficheiro (1)
-void log_run_result(char *filepath, int run_number, double custo, int C, int m, double tmax, double farref, int viz_tipo, int append, char *nome_fich)
+// Implementação COMPLETA da função de log (21 parâmetros)
+void log_run_result(char *filepath, int run_number, double custo, int C, int m, char *alg_nome,
+                    double tmax, double tmin, double farref, double temperatura_final,
+                    int tam_pop, int num_geracoes, double prob_mut, double prob_cross, int tam_torneio,
+                    int viz_tipo, int num_mutacoes, double prob_sel_roleta, double prob_cross_uniforme, int num_cross_dois_pontos,
+                    char *nome_fich)
 {
     // Usar 'a' (append) para adicionar ao ficheiro
     FILE *f = fopen(filepath, "a");
@@ -134,17 +139,33 @@ void log_run_result(char *filepath, int run_number, double custo, int C, int m, 
         return;
     }
 
-    // Se append for 0, escreve o cabeçalho (apenas na primeira run)
-    if (append == 0)
+    // Se run_number for 0, escreve o cabeçalho (apenas 1 vez)
+    if (run_number == 0)
     {
-        // Cabeçalho para Excel (use ponto e vírgula como separador para compatibilidade Europeia/Portuguesa)
-        fprintf(f, "Instancia;Candidatos;Locais;Algoritmo;TMax;Farref;Vizinhança;Run;Custo\n");
+        // Cabeçalho para Excel (usar ponto e vírgula como separador)
+        fprintf(f, "Instancia;Candidatos;Locais;Algoritmo;Run;Custo;");
+        fprintf(f, "RS_TMax;RS_TMin;RS_Farref;RS_Vizinhança;RS_TFinal;");
+        fprintf(f, "AE_TamPop;AE_Gerações;AE_ProbMut;AE_ProbCross;AE_TamTorneio;");
+        fprintf(f, "AE_NumMut;AE_ProbRoleta;AE_ProbUniforme;AE_Cross2Pontos\n");
     }
+    else
+    {
+        // Escreve os dados da run, usando 0/0.0 para parâmetros não aplicáveis
+        fprintf(f, "%s;%d;%d;%s;%d;%.4f;",
+                nome_fich, C, m, alg_nome, run_number, custo);
 
-    // Escreve os dados da run
-    fprintf(f, "%s;%d;%d;RS;%.2f;%.3f;%d;%d;%.4f\n",
-            strrchr(filepath, '/') ? strrchr(filepath, '/') + 1 : filepath, // Nome do ficheiro
-            C, m, tmax, farref, viz_tipo, run_number, custo);
+        // Parâmetros RS
+        fprintf(f, "%.2f;%.2f;%.3f;%d;%.2f;",
+                tmax, tmin, farref, viz_tipo, temperatura_final);
+
+        // Parâmetros AE
+        fprintf(f, "%d;%d;%.2f;%.2f;%d;",
+                tam_pop, num_geracoes, prob_mut, prob_cross, tam_torneio);
+
+        // Parâmetros de Variação (para o estudo experimental futuro)
+        fprintf(f, "%d;%.2f;%.2f;%d\n",
+                num_mutacoes, prob_sel_roleta, prob_cross_uniforme, num_cross_dois_pontos);
+    }
 
     fclose(f);
 }
