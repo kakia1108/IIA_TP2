@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "pesquisa_local.h" // Novo include
-#include "algoritmo_evolutivo.h" // Novo include
+#include "pesquisa_local.h"
+#include "algoritmo_evolutivo.h"
 #include "utils.h"
 #include "funcao.h"
 
@@ -21,51 +21,54 @@ int main(int argc, char *argv[])
     double custo, best_custo = 0.0;
     double soma_custos = 0.0;
 
-    // Variável para escolher o algoritmo (1=RS, 2=AE)
-    int alg_tipo = 1; // Default: Recristalização Simulada (RS)
+    // Variavel para escolher o algoritmo (1=RS, 2=AE)
+    int alg_tipo = 1;
 
     // ************************************************************
-    // PARÂMETROS DA RECRISTALIZAÇÃO SIMULADA (RS)
+    // PARAMETROS DA RECRISTALIZACAO SIMULADA (RS) - Valores Default
     // ************************************************************
     double tmax = 10.0;
     double tmin = 0.05;
     double farref = 0.99;
-    int viz_tipo = 3; // Default: 3 (Alternar V1 e V2)
+    int viz_tipo = 3;
+    int aceita_igual = 0;
 
     // ************************************************************
-    // PARÂMETROS DO ALGORITMO EVOLUTIVO (AE)
+    // PARAMETROS DO ALGORITMO EVOLUTIVO (AE) - Valores Default
     // ************************************************************
     int tam_pop = 50;
     int num_geracoes = 1000;
     double prob_mut = 0.05;
     double prob_cross = 0.8;
     int tam_torneio = 5;
-    int selecao_tipo = 1; // 1: Torneio, 2: Roleta
-    int cross_tipo = 1; // 1: Ponto Único, 2: Dois Pontos
-    int mut_tipo = 1; // 1: Troca, 2: Por Bit
+    int selecao_tipo = 1;
+    int cross_tipo = 1;
+    int mut_tipo = 1;
     // ************************************************************
 
 
-    // Processamento dos Argumentos (híbrido: tenta CLI, senão usa scanf)
+    // Processamento dos Argumentos (hibrido: tenta CLI, senao usa scanf)
     if(argc > 1)
     {
-        // 1. Ficheiro (Obrigatório)
+        // MODO CLI (Processamento em lote - preferencial para o estudo)
+        // 1. Ficheiro (Obrigatorio)
         strcpy(nome_fich, argv[1]);
 
         // 2. Runs
         runs = (argc > 2) ? atoi(argv[2]) : DEFAULT_RUNS;
 
-        // 3. Algoritmo (Novo Argumento)
+        // 3. Algoritmo
         alg_tipo = (argc > 3) ? atoi(argv[3]) : alg_tipo;
 
-        // 4. Parâmetros específicos (ajusta-se à quantidade de argumentos para RS ou AE)
-        if (alg_tipo == 1) // RS (3 argumentos adicionais após alg_tipo)
+        // 4. Parametros especificos (AE/RS)
+        if (alg_tipo == 1) // RS (4 argumentos adicionais apos alg_tipo)
         {
             tmax = (argc > 4) ? atof(argv[4]) : tmax;
             farref = (argc > 5) ? atof(argv[5]) : farref;
             viz_tipo = (argc > 6) ? atoi(argv[6]) : viz_tipo;
+            aceita_igual = (argc > 7) ? atoi(argv[7]) : aceita_igual;
         }
-        else if (alg_tipo == 2) // AE (8 argumentos adicionais após alg_tipo)
+        else if (alg_tipo == 2) // AE (8 argumentos adicionais apos alg_tipo)
         {
             tam_pop = (argc > 4) ? atoi(argv[4]) : tam_pop;
             num_geracoes = (argc > 5) ? atoi(argv[5]) : num_geracoes;
@@ -79,7 +82,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        // MODO INTERATIVO
+        // MODO INTERATIVO (Apenas o minimo essencial)
         runs = DEFAULT_RUNS;
         printf("Nome do Ficheiro (ex: tourism_5.txt): ");
         if (scanf("%s", nome_fich) != 1) {
@@ -87,39 +90,13 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        printf("Tipo de Algoritmo (1=RS, 2=AE): ");
+        printf("Tipo de Algoritmo (1=RS, 2=AE) [Default: %d]: ", alg_tipo);
         if (scanf("%d", &alg_tipo) != 1) {
             alg_tipo = 1; // Default
         }
 
-        // BLOCO: PEDIR CONFIGURAÇÃO DO AE SE FOR ESCOLHIDO O AE NO MODO INTERATIVO
-        if (alg_tipo == 2) {
-            printf("\n--- CONFIGURAÇÃO AE ---\n");
-            printf("Tamanho da População [%d]: ", tam_pop);
-            scanf("%d", &tam_pop);
-
-            printf("Número de Gerações [%d]: ", num_geracoes);
-            scanf("%d", &num_geracoes);
-
-            printf("Prob. Mutação (0.0 a 1.0) [%.2f]: ", prob_mut);
-            scanf("%lf", &prob_mut);
-
-            printf("Prob. Crossover (0.0 a 1.0) [%.2f]: ", prob_cross);
-            scanf("%lf", &prob_cross);
-
-            printf("Tipo de Seleção (1=Torneio, 2=Roleta) [%d]: ", selecao_tipo);
-            scanf("%d", &selecao_tipo);
-
-            printf("Tipo de Crossover (1=1 Ponto, 2=2 Pontos) [%d]: ", cross_tipo);
-            scanf("%d", &cross_tipo);
-
-            printf("Tipo de Mutação (1=Troca, 2=Bit) [%d]: ", mut_tipo);
-            scanf("%d", &mut_tipo);
-
-            printf("Tamanho Torneio (k) [%d]: ", tam_torneio);
-            scanf("%d", &tam_torneio);
-        }
-        // FIM DO BLOCO INTERATIVO
+        // **IMPORTANTE**: No modo interativo simplificado, todos os outros parametros
+        // (tmax, tam_pop, etc.) usam os valores DEFAULT definidos no topo do ficheiro.
     }
 
     if(runs <= 0)
@@ -128,7 +105,11 @@ int main(int argc, char *argv[])
     sprintf(filepath, "%s%s", DADOS_PATH, nome_fich);
     init_rand();
 
+    // Ler dados (C e m sao preenchidos aqui)
     mat = init_dados(filepath, &C, &m);
+
+    // NOVO PRINT: Imprimir C e m uma unica vez
+    printf("Candidatos: %d, Locais a construir: %d\n", C, m);
 
     sol = malloc(sizeof(int) * C);
     best = malloc(sizeof(int) * C);
@@ -138,7 +119,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // --- Configuração da Execução e Log ---
+    // --- Configuracao da Execucao e Log ---
     char alg_nome[30];
 
     if (alg_tipo == 1) {
@@ -150,22 +131,23 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Escrever o cabeçalho de log (run_number=0)
+    // Escrever o cabecalho de log (run_number=0)
     log_run_result(LOG_FILE, 0, 0.0, C, m, alg_nome,
                    tmax, tmin, farref, 0.0, // RS
                    tam_pop, num_geracoes, prob_mut, prob_cross, tam_torneio, // AE
-                   viz_tipo, mut_tipo, (selecao_tipo==2) ? 1.0 : 0.0, (cross_tipo==2) ? 1.0 : 0.0, 0, // Variações
+                   viz_tipo, mut_tipo, (selecao_tipo==2) ? 1.0 : 0.0, (cross_tipo==2) ? 1.0 : 0.0, aceita_igual, // Variacoes
                    nome_fich);
 
 
-    printf("\n--- CONFIGURAÇÃO DE TESTE ---\n");
+    printf("\n--- CONFIGURACAO DE TESTE ---\n");
     printf("Algoritmo: %s\n", alg_nome);
     printf("Instancia: %s, Total de runs: %d\n", nome_fich, runs);
     if (alg_tipo == 1) {
-        printf("RS Params: TMax=%.2f, Farref=%.3f, Vizinhança=%d\n", tmax, farref, viz_tipo);
+        printf("RS Params: TMax=%.2f, Farref=%.3f, Vizinhanca=%d, Aceita Iguais=%s\n",
+            tmax, farref, viz_tipo, (aceita_igual==1 ? "Sim" : "Nao"));
     } else {
         printf("AE Params: Pop=%d, Gens=%d, P_Mut=%.2f, P_Cross=%.2f\n", tam_pop, num_geracoes, prob_mut, prob_cross);
-        printf("AE Ops: Seleção=%s, Crossover=%s, Mutação=%s, T_Torneio=%d\n",
+        printf("AE Ops: Selecao=%s, Crossover=%s, Mutacao=%s, T_Torneio=%d\n",
             (selecao_tipo == 1 ? "Torneio" : "Roleta"),
             (cross_tipo == 1 ? "1 Ponto" : "2 Pontos"),
             (mut_tipo == 1 ? "Troca" : "Bit"),
@@ -175,26 +157,25 @@ int main(int argc, char *argv[])
     printf("----------------------------\n");
 
 
-    // Executar runs repetições
+    // Executar runs repeticoes
     for(k = 0; k < runs; k++)
     {
-        // Gerar solução inicial (só é usada por RS)
+        // Gerar solucao inicial (so e usada por RS)
         gera_sol_inicial(sol, C, m);
 
-        if (alg_tipo == 1) // Recristalização Simulada
+        if (alg_tipo == 1) // Recristalizacao Simulada
         {
-            custo = recristalizacao(sol, mat, C, m, tmax, tmin, farref, viz_tipo);
+            custo = recristalizacao(sol, mat, C, m, tmax, tmin, farref, viz_tipo, aceita_igual);
             // Log RS
             log_run_result(LOG_FILE, k + 1, custo, C, m, alg_nome,
                            tmax, tmin, farref, 0.0,
                            0, 0, 0.0, 0.0, 0,
-                           viz_tipo, 0, 0.0, 0.0, 0,
+                           viz_tipo, 0, 0.0, 0.0, aceita_igual, // aceita_igual mapeado para o ultimo campo de variacao
                            nome_fich);
 
         }
         else if (alg_tipo == 2) // Algoritmo Evolutivo
         {
-            // O AE recebe 'sol' como ponteiro para guardar a melhor solução final
             custo = algoritmo_evolutivo(sol, mat, C, m, tam_pop, num_geracoes, prob_mut, prob_cross, tam_torneio, selecao_tipo, cross_tipo, mut_tipo);
             // Log AE
             log_run_result(LOG_FILE, k + 1, custo, C, m, alg_nome,
@@ -204,15 +185,15 @@ int main(int argc, char *argv[])
                            nome_fich);
         }
 
-        // Escrever resultado da repetição k
+        // Escrever resultado da repeticao k
         printf("\n========== Repeticao %d ==========\n", k + 1);
         escreve_sol(sol, C);
         printf("Distancia Media: %.4f\n", custo);
 
-        // Acumular custo para média
+        // Acumular custo para media
         soma_custos += custo;
 
-        // Guardar melhor solução encontrada
+        // Guardar melhor solucao encontrada
         if(k == 0 || custo > best_custo)
         {
             best_custo = custo;
@@ -228,7 +209,7 @@ int main(int argc, char *argv[])
     escreve_sol(best, C);
     printf("Melhor Distancia Media: %.4f\n", best_custo);
 
-    // Liberar memória
+    // Liberar memoria
     free(mat);
     free(sol);
     free(best);

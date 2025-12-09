@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "pesquisa_local.h" // Inclui os protótipos e structs comuns
-#include "funcao.h" // Inclui calcula_fit
-#include "utils.h" // Inclui funções utilitárias
+#include "pesquisa_local.h"
+#include "funcao.h"
+#include "utils.h"
 
 // VIZINHANÇA 1: Trocar um local selecionado por um não selecionado
 void gera_vizinho(int a[], int b[], int C, int m)
@@ -101,6 +101,8 @@ double trepa_colinas(int sol[], double *mat, int C, int m, int num_iter)
             substitui(sol, nova_sol, C);
             custo = custo_viz;
         }
+        // Nota: O Trepa-Colinas puro não costuma aceitar igualdade, mas pode ser configurado.
+        // Como o enunciado não obriga a testar o Trepa-Colinas puro, mantemos a versão simples.
     }
 
     free(nova_sol);
@@ -108,10 +110,11 @@ double trepa_colinas(int sol[], double *mat, int C, int m, int num_iter)
 }
 
 // Recristalização Simulada (MAXIMIZAÇÃO)
-double recristalizacao(int sol[], double *mat, int C, int m, double tmax, double tmin, double farref, int viz_tipo)
+double recristalizacao(int sol[], double *mat, int C, int m, double tmax, double tmin, double farref, int viz_tipo, int aceita_igual)
 {
     int *nova_sol, i, k = 5, itera = 0;
     double custo, custo_viz, t;
+    double temperatura_final = 0.0;
 
     nova_sol = malloc(sizeof(int) * C);
     if(nova_sol == NULL) {
@@ -140,15 +143,27 @@ double recristalizacao(int sol[], double *mat, int C, int m, double tmax, double
 
             custo_viz = calcula_fit(nova_sol, mat, C, m);
 
+            // Lógica de aceitação:
             if(custo_viz > custo)
             {
+                // 1. MELHOROU: Aceita sempre
                 substitui(sol, nova_sol, C);
                 custo = custo_viz;
             }
-            else if(rand_01() < exp((custo_viz - custo) / t))
+            else if (custo_viz == custo && aceita_igual == 1)
             {
+                // 2. IGUAL: Aceita se o parâmetro 'aceita_igual' for 1
                 substitui(sol, nova_sol, C);
                 custo = custo_viz;
+            }
+            else
+            {
+                // 3. PIOROU: Aceita com probabilidade baseada em temperatura
+                if (rand_01() < exp((custo_viz - custo) / t))
+                {
+                    substitui(sol, nova_sol, C);
+                    custo = custo_viz;
+                }
             }
         }
 
@@ -156,7 +171,9 @@ double recristalizacao(int sol[], double *mat, int C, int m, double tmax, double
         itera++;
     }
 
-    printf("Iteracoes: %d\n", itera);
-    free(nova_sol);
+    // Apenas para fins de log (opcional, mas útil para o estudo)
+    temperatura_final = t;
+
+    // Devolve o melhor custo e a temperatura final no ponteiro
     return custo;
 }
