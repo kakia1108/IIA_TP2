@@ -11,4 +11,6 @@ add_executable(IIA_TP2 src/main.c
         src/pesquisa_local.c
         src/algoritmo_evolutivo.c
         src/pesquisa_local.h
-        src/algoritmo_evolutivo.h)
+        src/algoritmo_evolutivo.h
+        src/algoritmo_hibrido.c
+        src/algoritmo_hibrido.h)
